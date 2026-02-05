@@ -26,6 +26,7 @@ async def get_portfolio_summary() -> PortfolioSummary:
             average_pd=stats['average_pd'],
             total_expected_loss=stats['total_expected_loss'],
             risk_band_distribution=stats['risk_band_distribution'],
+            expected_loss_by_band=stats['expected_loss_by_band'],
         )
         
         logger.info("Portfolio summary retrieved")

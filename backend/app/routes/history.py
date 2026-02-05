@@ -33,11 +33,13 @@ async def get_scoring_history(
         
         history_records = [
             HistoryRecord(
-                id=r['id'],
+                application_id=r['id'],
                 timestamp=r['timestamp'],
-                applicant_data=r['applicant_data'],
-                prediction=r['prediction'],
-                model_used=r['model_used'],
+                risk_band=r['prediction']['risk_band'],
+                decision=r['prediction']['decision'],
+                pd=r['prediction']['pd'],
+                risk_score=r['prediction']['risk_score'],
+                expected_loss=r['prediction']['expected_loss'],
             )
             for r in records
         ]

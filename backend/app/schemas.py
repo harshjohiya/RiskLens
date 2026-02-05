@@ -66,11 +66,13 @@ class HistoryRecord(BaseModel):
     """Single history record."""
     model_config = ConfigDict(protected_namespaces=())
     
-    id: str
+    application_id: str
     timestamp: datetime
-    applicant_data: dict
-    prediction: dict
-    model_used: str
+    risk_band: str
+    decision: str
+    pd: float
+    risk_score: int
+    expected_loss: float
 
 
 class HistoryResponse(BaseModel):
@@ -85,7 +87,7 @@ class ExplainabilityResponse(BaseModel):
     """Explainability response."""
     application_id: str
     reason_codes: List[str]
-    risk_factors: dict
+    risk_factors: List[dict]
 
 
 class ModelSettingsRequest(BaseModel):

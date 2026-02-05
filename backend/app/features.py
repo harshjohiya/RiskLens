@@ -23,13 +23,13 @@ def engineer_features(applicant: ApplicantInput) -> Dict[str, Any]:
     Must align with feature_columns.pkl order.
     """
     
-    # Base features
+    # Base features - match model's expected column names
     features = {
+        'AMT_INCOME_TOTAL': applicant.income_total,
+        'AMT_CREDIT': applicant.credit_amount,
+        'AMT_ANNUITY': applicant.annuity,
+        'CNT_FAM_MEMBERS': applicant.family_members,
         'age_years': applicant.age_years,
-        'income_total': applicant.income_total,
-        'credit_amount': applicant.credit_amount,
-        'annuity': applicant.annuity,
-        'family_members': applicant.family_members,
         'num_active_loans': applicant.num_active_loans,
         'num_closed_loans': applicant.num_closed_loans,
         'num_bureau_loans': applicant.num_bureau_loans,
@@ -39,43 +39,25 @@ def engineer_features(applicant: ApplicantInput) -> Dict[str, Any]:
     
     # Derived features (same as training)
     income = applicant.income_total
+    credit = applicant.credit_amount
     family = max(applicant.family_members, 1)  # Avoid division by zero
     
     features['income_per_person'] = income / family
-    features['loan_to_income'] = applicant.credit_amount / income
+    features['loan_to_income'] = credit / income if income > 0 else 0
     features['annuity_to_income'] = applicant.annuity / income if income > 0 else 0
+    features['employment_ratio'] = income / max(credit, 1)  # Income to credit ratio
     
-    # Total loans
-    features['total_loans'] = (
-        applicant.num_active_loans + 
-        applicant.num_closed_loans + 
-        applicant.num_bureau_loans
-    )
+    # Credit exposure features
+    total_loans = applicant.num_active_loans + applicant.num_closed_loans
+    features['total_credit_exposure'] = credit * max(total_loans, 1)
+    features['total_credit_debt'] = credit + applicant.annuity
     
-    # Delinquency indicators
-    features['has_delinquency'] = 1 if applicant.max_delinquency > 0 else 0
-    features['delinquency_ratio'] = (
-        applicant.total_delinquency_months / max(applicant.num_bureau_loans, 1)
-    )
-    
-    # Bucketed features (categorical from numeric)
-    features['income_per_person_bucket'] = pd.cut(
-        [features['income_per_person']], 
-        bins=INCOME_PER_PERSON_BUCKETS, 
-        labels=range(len(INCOME_PER_PERSON_BUCKETS) - 1)
-    )[0]
-    
-    features['loan_to_income_bucket'] = pd.cut(
-        [features['loan_to_income']], 
-        bins=LOAN_TO_INCOME_BUCKETS, 
-        labels=range(len(LOAN_TO_INCOME_BUCKETS) - 1)
-    )[0]
-    
-    features['annuity_to_income_bucket'] = pd.cut(
-        [features['annuity_to_income']], 
-        bins=ANNUITY_TO_INCOME_BUCKETS, 
-        labels=range(len(ANNUITY_TO_INCOME_BUCKETS) - 1)
-    )[0]
+    # Loan to income buckets - one-hot encoded
+    loan_to_income_ratio = features['loan_to_income']
+    features['loan_to_income_bucket_(1.818, 2.764]'] = 1 if 1.818 < loan_to_income_ratio <= 2.764 else 0
+    features['loan_to_income_bucket_(2.764, 3.906]'] = 1 if 2.764 < loan_to_income_ratio <= 3.906 else 0
+    features['loan_to_income_bucket_(3.906, 5.769]'] = 1 if 3.906 < loan_to_income_ratio <= 5.769 else 0
+    features['loan_to_income_bucket_(5.769, 84.737]'] = 1 if 5.769 < loan_to_income_ratio <= 84.737 else 0
     
     return features
 
@@ -119,13 +101,19 @@ def get_feature_importance_context(applicant: ApplicantInput) -> Dict[str, float
     """
     features = engineer_features(applicant)
     
+    # Calculate derived values for reason code generation
+    total_loans = applicant.num_active_loans + applicant.num_closed_loans + applicant.num_bureau_loans
+    has_delinquency = 1 if applicant.max_delinquency > 0 else 0
+    
     return {
         'loan_to_income': features['loan_to_income'],
         'annuity_to_income': features['annuity_to_income'],
         'income_per_person': features['income_per_person'],
         'num_active_loans': features['num_active_loans'],
-        'has_delinquency': features['has_delinquency'],
+        'has_delinquency': has_delinquency,
         'total_delinquency_months': features['total_delinquency_months'],
         'age_years': features['age_years'],
-        'total_loans': features['total_loans'],
+        'total_loans': total_loans,
+        'employment_ratio': features['employment_ratio'],
+        'max_delinquency': features['max_delinquency'],
     }

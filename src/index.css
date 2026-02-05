@@ -1,0 +1,245 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* RiskLens Design System - Professional Fintech Aesthetic */
+
+@layer base {
+  :root {
+    /* Core Background & Foreground */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    /* Card surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary - Deep Navy Blue (Trust & Professionalism) */
+    --primary: 222 47% 20%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary - Slate */
+    --secondary: 215 20% 94%;
+    --secondary-foreground: 222 47% 20%;
+
+    /* Muted */
+    --muted: 215 20% 94%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent - Subtle Blue */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Risk Band Colors */
+    --risk-a: 142 76% 36%;
+    --risk-b: 47 96% 53%;
+    --risk-c: 25 95% 53%;
+    --risk-d: 0 72% 51%;
+
+    /* Decision Colors */
+    --approve: 142 76% 36%;
+    --reject: 0 72% 51%;
+    --review: 47 96% 53%;
+
+    /* Status Colors */
+    --success: 142 76% 36%;
+    --warning: 47 96% 53%;
+    --error: 0 72% 51%;
+    --info: 217 91% 60%;
+
+    /* Borders & Inputs */
+    --border: 215 20% 88%;
+    --input: 215 20% 88%;
+    --ring: 222 47% 20%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar - Darker variant */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 215 20% 94%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 16%;
+    --sidebar-accent-foreground: 215 20% 94%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 217 91% 60%;
+    --sidebar-muted: 215 16% 47%;
+
+    /* Chart Colors */
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 47 96% 53%;
+    --chart-4: 25 95% 53%;
+    --chart-5: 0 72% 51%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 222 30% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 30% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 215 20% 94%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 9%;
+    --sidebar-accent-foreground: 215 20% 94%;
+    --sidebar-border: 222 30% 12%;
+    --sidebar-ring: 217 91% 60%;
+    --sidebar-muted: 215 16% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Data-focused typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Smooth transitions */
+  * {
+    @apply transition-colors duration-150;
+  }
+}
+
+@layer components {
+  /* Risk Band Badges */
+  .risk-band-a {
+    @apply bg-[hsl(var(--risk-a)/0.15)] text-[hsl(var(--risk-a))] border-[hsl(var(--risk-a)/0.3)];
+  }
+  
+  .risk-band-b {
+    @apply bg-[hsl(var(--risk-b)/0.15)] text-[hsl(var(--risk-b))] border-[hsl(var(--risk-b)/0.3)];
+  }
+  
+  .risk-band-c {
+    @apply bg-[hsl(var(--risk-c)/0.15)] text-[hsl(var(--risk-c))] border-[hsl(var(--risk-c)/0.3)];
+  }
+  
+  .risk-band-d {
+    @apply bg-[hsl(var(--risk-d)/0.15)] text-[hsl(var(--risk-d))] border-[hsl(var(--risk-d)/0.3)];
+  }
+
+  /* Decision Badges */
+  .decision-approve {
+    @apply bg-[hsl(var(--approve)/0.15)] text-[hsl(var(--approve))] border-[hsl(var(--approve)/0.3)];
+  }
+  
+  .decision-reject {
+    @apply bg-[hsl(var(--reject)/0.15)] text-[hsl(var(--reject))] border-[hsl(var(--reject)/0.3)];
+  }
+  
+  .decision-review {
+    @apply bg-[hsl(var(--review)/0.15)] text-[hsl(var(--review))] border-[hsl(var(--review)/0.3)];
+  }
+
+  /* Metric Card Styling */
+  .metric-card {
+    @apply bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  /* Data Table Rows */
+  .data-row {
+    @apply hover:bg-muted/50 transition-colors;
+  }
+
+  /* Sidebar item active state */
+  .sidebar-item-active {
+    @apply bg-sidebar-accent text-sidebar-primary font-medium;
+  }
+
+  /* Form input focus ring */
+  .input-focus {
+    @apply focus:ring-2 focus:ring-primary/20 focus:border-primary;
+  }
+
+  /* Skeleton shimmer animation */
+  .skeleton-shimmer {
+    @apply animate-pulse bg-muted;
+  }
+}
+
+@layer utilities {
+  /* Screen reader only - for accessibility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  /* Gradient backgrounds */
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(222 47% 15%) 100%);
+  }
+
+  .gradient-subtle {
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--secondary)) 100%);
+  }
+}

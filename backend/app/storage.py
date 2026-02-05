@@ -155,16 +155,16 @@ def get_portfolio_stats() -> Dict[str, Any]:
             'average_pd': 0.0,
             'total_expected_loss': 0.0,
             'risk_band_distribution': [
-                {'risk_band': 'A', 'count': 0, 'percentage': 0.0},
-                {'risk_band': 'B', 'count': 0, 'percentage': 0.0},
-                {'risk_band': 'C', 'count': 0, 'percentage': 0.0},
-                {'risk_band': 'D', 'count': 0, 'percentage': 0.0},
+                {'band': 'A', 'count': 0, 'percentage': 0.0},
+                {'band': 'B', 'count': 0, 'percentage': 0.0},
+                {'band': 'C', 'count': 0, 'percentage': 0.0},
+                {'band': 'D', 'count': 0, 'percentage': 0.0},
             ],
             'expected_loss_by_band': [
-                {'risk_band': 'A', 'total_loss': 0.0},
-                {'risk_band': 'B', 'total_loss': 0.0},
-                {'risk_band': 'C', 'total_loss': 0.0},
-                {'risk_band': 'D', 'total_loss': 0.0},
+                {'band': 'A', 'expected_loss': 0.0},
+                {'band': 'B', 'expected_loss': 0.0},
+                {'band': 'C', 'expected_loss': 0.0},
+                {'band': 'D', 'expected_loss': 0.0},
             ],
         }
     
@@ -206,7 +206,7 @@ def get_portfolio_stats() -> Dict[str, Any]:
                 break
         percentage = (count / total * 100) if total > 0 else 0
         risk_band_distribution.append({
-            'risk_band': band,
+            'band': band,
             'count': count,
             'percentage': round(percentage, 2)
         })
@@ -229,8 +229,8 @@ def get_portfolio_stats() -> Dict[str, Any]:
                 total_loss = row_loss or 0.0
                 break
         expected_loss_by_band.append({
-            'risk_band': band,
-            'total_loss': round(total_loss, 2)
+            'band': band,
+            'expected_loss': round(total_loss, 2)
         })
     
     conn.close()

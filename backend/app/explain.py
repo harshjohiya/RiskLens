@@ -86,17 +86,75 @@ def generate_reason_codes(
     return unique_reasons
 
 
-def get_risk_factors(applicant: ApplicantInput) -> Dict[str, Any]:
-    """Return detailed risk factors for explainability."""
+def get_risk_factors(applicant: ApplicantInput) -> List[Dict[str, Any]]:
+    """Return detailed risk factors for explainability as a list of feature contributions."""
     context = get_feature_importance_context(applicant)
     
-    return {
-        'loan_to_income_ratio': round(context['loan_to_income'], 3),
-        'annuity_to_income_ratio': round(context['annuity_to_income'], 3),
-        'income_per_household_member': round(context['income_per_person'], 2),
-        'active_loans': int(context['num_active_loans']),
-        'total_loans': int(context['total_loans']),
-        'delinquency_history': bool(context['has_delinquency']),
-        'total_delinquency_months': int(context['total_delinquency_months']),
-        'age': int(context['age_years']),
-    }
+    risk_factors = []
+    
+    # Loan to income ratio
+    lti = context['loan_to_income']
+    risk_factors.append({
+        'feature': 'Loan-to-Income Ratio',
+        'contribution': round(lti, 3),
+        'direction': 'positive' if lti > 3 else 'negative'
+    })
+    
+    # Annuity to income ratio
+    ati = context['annuity_to_income']
+    risk_factors.append({
+        'feature': 'Annuity-to-Income Ratio',
+        'contribution': round(ati, 3),
+        'direction': 'positive' if ati > 0.25 else 'negative'
+    })
+    
+    # Income per household member
+    ipp = context['income_per_person']
+    risk_factors.append({
+        'feature': 'Income per Household Member',
+        'contribution': round(ipp, 2),
+        'direction': 'negative' if ipp > 75000 else 'positive'
+    })
+    
+    # Active loans
+    active = int(context['num_active_loans'])
+    risk_factors.append({
+        'feature': 'Active Loans',
+        'contribution': active,
+        'direction': 'positive' if active >= 2 else 'negative'
+    })
+    
+    # Total loans
+    total = int(context['total_loans'])
+    risk_factors.append({
+        'feature': 'Total Credit History',
+        'contribution': total,
+        'direction': 'positive' if total >= 4 else 'negative'
+    })
+    
+    # Delinquency history
+    has_delinq = bool(context['has_delinquency'])
+    delinq_months = int(context['total_delinquency_months'])
+    risk_factors.append({
+        'feature': 'Delinquency History',
+        'contribution': delinq_months,
+        'direction': 'positive' if has_delinq else 'negative'
+    })
+    
+    # Age
+    age = int(context['age_years'])
+    risk_factors.append({
+        'feature': 'Age',
+        'contribution': age,
+        'direction': 'positive' if age < 25 or age > 60 else 'negative'
+    })
+    
+    # Employment ratio
+    emp_ratio = round(context['employment_ratio'], 3)
+    risk_factors.append({
+        'feature': 'Employment Ratio',
+        'contribution': emp_ratio,
+        'direction': 'negative' if emp_ratio > 0.5 else 'positive'
+    })
+    
+    return risk_factors
