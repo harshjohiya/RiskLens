@@ -8,6 +8,8 @@ import type { FutureConfig } from "react-router-dom";
 // Pages
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
+import SignInPage from "./pages/SignInPage";
+import SignUpPage from "./pages/SignUpPage";
 
 // App Layout & Pages
 import { AppLayout } from "./components/layout/AppLayout";
@@ -18,6 +20,9 @@ import HistoryPage from "./pages/app/HistoryPage";
 import ExplainPage from "./pages/app/ExplainPage";
 import SettingsPage from "./pages/app/SettingsPage";
 import ApiDocsPage from "./pages/app/ApiDocsPage";
+
+// Auth Protection
+import { PrivateRoute } from "./components/PrivateRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,8 +48,19 @@ const App = () => (
           {/* Public Landing Page */}
           <Route path="/" element={<LandingPage />} />
 
-          {/* App Routes with Sidebar Layout */}
-          <Route path="/app" element={<AppLayout />}>
+          {/* Auth Routes */}
+          <Route path="/login" element={<SignInPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+
+          {/* Protected App Routes with Sidebar Layout */}
+          <Route
+            path="/app"
+            element={
+              <PrivateRoute>
+                <AppLayout />
+              </PrivateRoute>
+            }
+          >
             <Route index element={<DashboardPage />} />
             <Route path="scoring" element={<ScoringPage />} />
             <Route path="batch" element={<BatchScoringPage />} />

@@ -1,5 +1,5 @@
 """Single applicant prediction endpoint."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 import logging
 
 from ..schemas import ApplicantInput, PredictionResponse
@@ -8,6 +8,7 @@ from ..features import prepare_for_prediction
 from ..scoring import compute_all_scores
 from ..explain import generate_reason_codes
 from ..storage import store_prediction
+from ..auth_utils import get_current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,10 @@ router = APIRouter(prefix="/predict", tags=["prediction"])
 
 
 @router.post("", response_model=PredictionResponse)
-async def predict_single_applicant(applicant: ApplicantInput) -> PredictionResponse:
+async def predict_single_applicant(
+    applicant: ApplicantInput,
+    user_id: str = Depends(get_current_user_id)
+) -> PredictionResponse:
     """
     Score a single applicant.
     
@@ -53,12 +57,13 @@ async def predict_single_applicant(applicant: ApplicantInput) -> PredictionRespo
             reason_codes=reasons,
         )
         
-        # Store in history
+        # Store in history with user_id
         try:
             store_prediction(
                 applicant_input=applicant.dict(),
                 prediction=response.dict(),
                 model_used=applicant.model_type,
+                user_id=user_id,
             )
         except Exception as e:
             logger.warning(f"Failed to store prediction: {e}")

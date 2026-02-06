@@ -7,7 +7,7 @@ from .config import LOG_LEVEL
 from .model_loader import validate_models, test_models
 from .storage import init_database
 from .schemas import HealthResponse
-from .routes import predict, batch, dashboard, history, explain, settings
+from .routes import predict, batch, dashboard, history, explain, settings, auth
 
 # Configure logging
 logging.basicConfig(
@@ -40,6 +40,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include auth router (no prefix - /auth/login, /auth/signup)
+app.include_router(auth.router, prefix="/auth")
 
 # Include routers with /api prefix
 app.include_router(predict.router, prefix="/api")

@@ -1,8 +1,9 @@
 """Batch scoring endpoint."""
-from fastapi import APIRouter, File, UploadFile, HTTPException, Query
+from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Depends, status
 import pandas as pd
 import io
 import logging
+import uuid
 from pathlib import Path
 from datetime import datetime
 
@@ -13,6 +14,8 @@ from ..scoring import compute_all_scores
 from ..explain import generate_reason_codes
 from ..schemas import ApplicantInput
 from ..config import DATA_DIR
+from ..auth_utils import get_current_user_id
+from ..storage import store_batch_job, get_batch_job
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +25,8 @@ router = APIRouter(prefix="/batch-score", tags=["batch"])
 @router.post("", response_model=BatchScoreResponse)
 async def batch_score(
     file: UploadFile = File(...),
-    model_type: str = Query("logistic", pattern="^(logistic|lightgbm)$")
+    model_type: str = Query("logistic", pattern="^(logistic|lightgbm)$"),
+    user_id: str = Depends(get_current_user_id)
 ) -> BatchScoreResponse:
     """
     Score multiple applicants from CSV file.
@@ -98,15 +102,31 @@ async def batch_score(
         
         # Save results
         DATA_DIR.mkdir(parents=True, exist_ok=True)
+        job_id = str(uuid.uuid4())
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = DATA_DIR / f"batch_scores_{timestamp}.csv"
+        output_file = DATA_DIR / f"batch_{job_id}_{timestamp}.csv"
         
         result_df = pd.DataFrame(results)
         result_df.to_csv(output_file, index=False)
         
         successful = len(results) - failed
         
-        logger.info(f"Batch scoring complete: {successful} successful, {failed} failed")
+        # Store batch job record
+        try:
+            store_batch_job(
+                user_id=user_id,
+                job_id=job_id,
+                filename=file.filename,
+                model_type=model_type,
+                total_records=len(df),
+                successful_records=successful,
+                failed_records=failed,
+                result_file=str(output_file),
+            )
+        except Exception as e:
+            logger.warning(f"Failed to store batch job: {e}")
+        
+        logger.info(f"Batch scoring complete for user {user_id}: {successful} successful, {failed} failed")
         
         return BatchScoreResponse(
             total_records=len(df),
@@ -119,3 +139,24 @@ async def batch_score(
     except Exception as e:
         logger.error(f"Batch scoring failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch scoring failed: {str(e)}")
+
+
+@router.get("/{job_id}", response_model=dict)
+async def get_batch_status(
+    job_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Get batch job status and results.
+    
+    Returns 403 if job doesn't belong to the authenticated user.
+    """
+    job = get_batch_job(job_id, user_id)
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Batch job not found or access denied"
+        )
+    
+    return job

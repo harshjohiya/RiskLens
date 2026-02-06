@@ -65,9 +65,9 @@ export default function LandingPage() {
                 API Docs
               </Button>
             </Link>
-            <Link to="/app">
+            <Link to="/login">
               <Button size="sm">
-                Get Started
+                Sign In
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
@@ -93,7 +93,7 @@ export default function LandingPage() {
             decisions for modern lenders.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/app">
+            <Link to="/login">
               <Button size="lg" className="w-full sm:w-auto">
                 Get Started
                 <ArrowRight className="ml-2 w-5 h-5" />

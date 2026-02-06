@@ -1,4 +1,4 @@
-"""Simple SQLite storage for history and audit logs."""
+"""Simple SQLite storage for history and audit logs with user isolation."""
 import sqlite3
 import json
 import uuid
@@ -13,17 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 def init_database():
-    """Initialize SQLite database."""
+    """Initialize SQLite database with user isolation."""
     db_path = DB_PATH
     db_path.parent.mkdir(parents=True, exist_ok=True)
     
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Create history table
+    # Create history table with user_id
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS scoring_history (
         id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
         timestamp TEXT NOT NULL,
         input_data TEXT NOT NULL,
         prediction_data TEXT NOT NULL,
@@ -32,6 +33,32 @@ def init_database():
         decision TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+    """)
+    
+    # Create index on user_id for faster queries
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_user_id ON scoring_history(user_id)
+    """)
+    
+    # Create batch jobs table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS batch_jobs (
+        job_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        filename TEXT NOT NULL,
+        model_type TEXT NOT NULL,
+        status TEXT NOT NULL,
+        total_records INTEGER,
+        successful_records INTEGER,
+        failed_records INTEGER,
+        result_file TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP
+    )
+    """)
+    
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_batch_user_id ON batch_jobs(user_id)
     """)
     
     conn.commit()
@@ -43,11 +70,19 @@ def store_prediction(
     applicant_input: Dict[str, Any],
     prediction: Dict[str, Any],
     model_used: str,
+    user_id: str,
 ) -> str:
     """
     Store a prediction in history.
     
-    Returns the record ID.
+    Args:
+        applicant_input: Input data
+        prediction: Prediction results
+        model_used: Model type used
+        user_id: ID of the user who created this prediction
+    
+    Returns:
+        The record ID.
     """
     record_id = str(uuid.uuid4())
     timestamp = datetime.utcnow().isoformat()
@@ -57,10 +92,11 @@ def store_prediction(
     
     cursor.execute("""
     INSERT INTO scoring_history 
-    (id, timestamp, input_data, prediction_data, model_used, risk_band, decision)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (id, user_id, timestamp, input_data, prediction_data, model_used, risk_band, decision)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         record_id,
+        user_id,
         timestamp,
         json.dumps(applicant_input),
         json.dumps(prediction),
@@ -72,11 +108,12 @@ def store_prediction(
     conn.commit()
     conn.close()
     
-    logger.info(f"Stored prediction {record_id}")
+    logger.info(f"Stored prediction {record_id} for user {user_id}")
     return record_id
 
 
 def get_history(
+    user_id: str,
     page: int = 1,
     page_size: int = 20,
     risk_band: Optional[str] = None,
@@ -85,6 +122,15 @@ def get_history(
     """
     Retrieve paginated history with optional filters.
     
+    ONLY returns records belonging to the specified user_id.
+    
+    Args:
+        user_id: Filter to this user's records only
+        page: Page number (1-indexed)
+        page_size: Records per page
+        risk_band: Optional risk band filter
+        decision: Optional decision filter
+    
     Returns:
         (records, total_count)
     """
@@ -92,9 +138,9 @@ def get_history(
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    # Build query
-    where_clauses = []
-    params = []
+    # Build query - ALWAYS filter by user_id
+    where_clauses = ["user_id = ?"]
+    params = [user_id]
     
     if risk_band:
         where_clauses.append("risk_band = ?")
@@ -104,7 +150,7 @@ def get_history(
         where_clauses.append("decision = ?")
         params.append(decision)
     
-    where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+    where_sql = "WHERE " + " AND ".join(where_clauses)
     
     # Count total
     count_query = f"SELECT COUNT(*) as count FROM scoring_history {where_sql}"
@@ -138,13 +184,23 @@ def get_history(
     return records, total
 
 
-def get_portfolio_stats() -> Dict[str, Any]:
-    """Get portfolio statistics from history."""
+def get_portfolio_stats(user_id: str) -> Dict[str, Any]:
+    """
+    Get portfolio statistics from history for a specific user.
+    
+    ONLY includes records belonging to the specified user_id.
+    
+    Args:
+        user_id: Filter to this user's records only
+        
+    Returns:
+        Portfolio statistics dictionary
+    """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Total applications
-    cursor.execute("SELECT COUNT(*) as count FROM scoring_history")
+    # Total applications for this user
+    cursor.execute("SELECT COUNT(*) as count FROM scoring_history WHERE user_id = ?", (user_id,))
     total = cursor.fetchone()[0]
     
     if total == 0:
@@ -172,8 +228,8 @@ def get_portfolio_stats() -> Dict[str, Any]:
     cursor.execute("""
     SELECT COUNT(*) as count 
     FROM scoring_history 
-    WHERE decision = 'Approve'
-    """)
+    WHERE user_id = ? AND decision = 'Approve'
+    """, (user_id,))
     approvals = cursor.fetchone()[0]
     approval_rate = approvals / total if total > 0 else 0
     
@@ -183,7 +239,8 @@ def get_portfolio_stats() -> Dict[str, Any]:
         AVG(CAST(json_extract(prediction_data, '$.pd') AS FLOAT)) as avg_pd,
         SUM(CAST(json_extract(prediction_data, '$.expected_loss') AS FLOAT)) as total_el
     FROM scoring_history
-    """)
+    WHERE user_id = ?
+    """, (user_id,))
     row = cursor.fetchone()
     avg_pd = row[0] or 0
     total_el = row[1] or 0
@@ -192,8 +249,9 @@ def get_portfolio_stats() -> Dict[str, Any]:
     cursor.execute("""
     SELECT risk_band, COUNT(*) as count
     FROM scoring_history
+    WHERE user_id = ?
     GROUP BY risk_band
-    """)
+    """, (user_id,))
     dist_rows = cursor.fetchall()
     
     # Create distribution array
@@ -217,8 +275,9 @@ def get_portfolio_stats() -> Dict[str, Any]:
         risk_band,
         SUM(CAST(json_extract(prediction_data, '$.expected_loss') AS FLOAT)) as total_loss
     FROM scoring_history
+    WHERE user_id = ?
     GROUP BY risk_band
-    """)
+    """, (user_id,))
     el_rows = cursor.fetchall()
     
     expected_loss_by_band = []
@@ -245,11 +304,104 @@ def get_portfolio_stats() -> Dict[str, Any]:
     }
 
 
+def store_batch_job(
+    user_id: str,
+    job_id: str,
+    filename: str,
+    model_type: str,
+    total_records: int,
+    successful_records: int,
+    failed_records: int,
+    result_file: str,
+) -> None:
+    """Store batch job information."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+    INSERT INTO batch_jobs 
+    (job_id, user_id, filename, model_type, status, total_records, 
+     successful_records, failed_records, result_file, completed_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        job_id,
+        user_id,
+        filename,
+        model_type,
+        'completed',
+        total_records,
+        successful_records,
+        failed_records,
+        result_file,
+        datetime.utcnow().isoformat(),
+    ))
+    
+    conn.commit()
+    conn.close()
+    logger.info(f"Stored batch job {job_id} for user {user_id}")
+
+
+def get_batch_job(job_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Get batch job by ID.
+    
+    Returns None if job doesn't exist or doesn't belong to user.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+    SELECT * FROM batch_jobs 
+    WHERE job_id = ? AND user_id = ?
+    """, (job_id, user_id))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return None
+    
+    return dict(row)
+
+
+def get_prediction_by_id(application_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Get a single prediction by ID.
+    
+    Returns None if record doesn't exist or doesn't belong to user.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+    SELECT * FROM scoring_history 
+    WHERE id = ? AND user_id = ?
+    """, (application_id, user_id))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return None
+    
+    return {
+        'id': row['id'],
+        'timestamp': row['timestamp'],
+        'applicant_data': json.loads(row['input_data']),
+        'prediction': json.loads(row['prediction_data']),
+        'model_used': row['model_used'],
+    }
+
+
 def clear_history():
     """Clear all history (for testing)."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM scoring_history")
+    cursor.execute("DELETE FROM batch_jobs")
     conn.commit()
     conn.close()
     logger.info("History cleared")
+
