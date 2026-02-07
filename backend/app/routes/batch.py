@@ -1,5 +1,6 @@
 """Batch scoring endpoint."""
 from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Depends, status
+from fastapi.responses import FileResponse
 import pandas as pd
 import io
 import logging
@@ -68,23 +69,23 @@ async def batch_score(
                 # Prepare features
                 X = prepare_for_prediction(applicant)
                 
-                # Get PD
+                # Get PD (Probability of Default)
                 if model_type == "logistic":
-                    pd = float(model.predict_proba(X)[0][1])
+                    prob_default = float(model.predict_proba(X)[0][1])
                 else:  # lightgbm
-                    pd = float(model.predict_proba(X)[0][1])
+                    prob_default = float(model.predict_proba(X)[0][1])
                 
-                pd = max(0.001, min(0.999, pd))
+                prob_default = max(0.001, min(0.999, prob_default))
                 
                 # Compute scores
-                score, band, el, decision = compute_all_scores(pd, applicant.credit_amount)
+                score, band, el, decision = compute_all_scores(prob_default, applicant.credit_amount)
                 
                 # Generate reasons
-                reasons = generate_reason_codes(applicant, pd, band)
+                reasons = generate_reason_codes(applicant, prob_default, band)
                 
                 results.append({
                     **row.to_dict(),
-                    'pd': round(pd, 4),
+                    'pd': round(prob_default, 4),
                     'risk_score': score,
                     'risk_band': band,
                     'expected_loss': el,
@@ -129,6 +130,7 @@ async def batch_score(
         logger.info(f"Batch scoring complete for user {user_id}: {successful} successful, {failed} failed")
         
         return BatchScoreResponse(
+            job_id=job_id,
             total_records=len(df),
             successful_records=successful,
             failed_records=failed,
@@ -160,3 +162,36 @@ async def get_batch_status(
         )
     
     return job
+
+
+@router.get("/{job_id}/download")
+async def download_batch_results(
+    job_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Download batch job results as CSV.
+    
+    Returns 403 if job doesn't belong to the authenticated user.
+    """
+    job = get_batch_job(job_id, user_id)
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Batch job not found or access denied"
+        )
+    
+    result_file = Path(job['result_file'])
+    
+    if not result_file.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Result file not found"
+        )
+    
+    return FileResponse(
+        path=result_file,
+        media_type="text/csv",
+        filename=f"batch_results_{job_id}.csv"
+    )

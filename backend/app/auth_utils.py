@@ -1,35 +1,55 @@
-"""JWT authentication utilities."""
+"""Simple JWT authentication utilities."""
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
-import secrets
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+
+from .config import JWT_SECRET_KEY, JWT_ALGORITHM, JWT_ACCESS_TOKEN_EXPIRE_DAYS
 
 logger = logging.getLogger(__name__)
 
-# JWT Settings (use environment variables in production)
-SECRET_KEY = secrets.token_hex(32)  # Generate a secure secret key
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+# Password hashing with Argon2
+ph = PasswordHasher()
+
+# JWT Settings (from config)
+SECRET_KEY = JWT_SECRET_KEY
+ALGORITHM = JWT_ALGORITHM
+ACCESS_TOKEN_EXPIRE_DAYS = JWT_ACCESS_TOKEN_EXPIRE_DAYS
 
 security = HTTPBearer()
 
 
+def hash_password(password: str) -> str:
+    """Hash a password for storing."""
+    return ph.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a stored password against a provided password."""
+    try:
+        ph.verify(hashed_password, plain_password)
+        return True
+    except VerifyMismatchError:
+        return False
+
+
 def create_access_token(user_id: str, email: str) -> str:
     """
-    Create a JWT access token.
+    Create JWT access token.
     
     Args:
-        user_id: Unique user identifier
-        email: User email address
-        
+        user_id: User's unique ID
+        email: User's email
+    
     Returns:
-        Encoded JWT token
+        JWT token string
     """
-    expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expires_delta = timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
     expire = datetime.utcnow() + expires_delta
     
     payload = {
@@ -40,19 +60,20 @@ def create_access_token(user_id: str, email: str) -> str:
     }
     
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    logger.info(f"Created JWT token for user {user_id}")
     return token
 
 
 def decode_token(token: str) -> dict:
     """
-    Decode and validate a JWT token.
+    Decode and validate JWT token.
     
     Args:
         token: JWT token string
-        
+    
     Returns:
         Decoded token payload
-        
+    
     Raises:
         HTTPException: If token is invalid or expired
     """
@@ -72,52 +93,37 @@ async def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> str:
     """
-    Dependency to extract user_id from JWT token.
+    FastAPI dependency to extract user_id from JWT token.
     
     Use this in route handlers to get the authenticated user's ID:
     ```python
     @router.get("/protected")
     async def protected_route(user_id: str = Depends(get_current_user_id)):
-        # user_id is automatically extracted from JWT
+        # user_id is automatically extracted and verified
         pass
     ```
     
     Args:
         credentials: HTTP Bearer token from request header
-        
+    
     Returns:
         user_id from token's 'sub' claim
-        
+    
     Raises:
         HTTPException: If token is missing, invalid, or expired
     """
     token = credentials.credentials
     payload = decode_token(token)
     
-    user_id = payload.get("sub")
+    user_id: str = payload.get("sub")
     if not user_id:
+        logger.error("Token payload missing 'sub' claim")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
+    logger.debug(f"Authenticated user: {user_id}")
     return user_id
 
-
-async def get_optional_user_id(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
-) -> Optional[str]:
-    """
-    Optional dependency to extract user_id from JWT token.
-    
-    Returns None if no token is provided (for public endpoints).
-    """
-    if not credentials:
-        return None
-    
-    try:
-        token = credentials.credentials
-        payload = decode_token(token)
-        return payload.get("sub")
-    except HTTPException:
-        return None

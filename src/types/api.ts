@@ -6,7 +6,7 @@ export type RiskBand = "A" | "B" | "C" | "D";
 
 export type Decision = "Approve" | "Reject" | "Manual Review";
 
-export type BatchJobStatus = "pending" | "processing" | "completed" | "failed";
+export type JobStatus = "pending" | "processing" | "completed" | "failed";
 
 // Single Applicant Scoring
 export interface ApplicantInput {
@@ -63,13 +63,48 @@ export interface BatchScoreRequest {
 
 export interface BatchScoreResponse {
   job_id: string;
-  status: BatchJobStatus;
-  total_records?: number;
+  total_records: number;
+  successful_records: number;
+  failed_records: number;
+  file_path: string;
+  message: string;
+}
+
+export interface BatchJobStatus {
+  job_id: string;
+  user_id: string;
+  filename: string;
+  model_type: string;
+  status: JobStatus;
+  total_records: number;
+  successful_records: number;
+  failed_records: number;
   processed_records?: number;
-  error_message?: string;
-  download_url?: string;
+  result_file: string;
   created_at: string;
-  completed_at?: string;
+  completed_at: string | null;
+  download_url?: string;
+  error_message?: string;
+}
+
+export interface BatchResultRow {
+  age_years: number;
+  income_total: number;
+  credit_amount: number;
+  annuity: number;
+  family_members: number;
+  num_active_loans: number;
+  num_closed_loans: number;
+  num_bureau_loans: number;
+  max_delinquency: number;
+  total_delinquency_months: number;
+  pd: number;
+  risk_score: number;
+  risk_band: RiskBand;
+  expected_loss: number;
+  decision: Decision;
+  reason_codes: string;
+  error?: string;
 }
 
 // History / Audit Log

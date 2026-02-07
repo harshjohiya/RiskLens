@@ -1,6 +1,11 @@
 """Configuration and constants for the backend."""
 from pathlib import Path
 from enum import Enum
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -37,3 +42,11 @@ EL_LOSS_RATE = 0.45  # Loss Given Default
 
 # Logging
 LOG_LEVEL = "INFO"
+
+# JWT Authentication
+JWT_SECRET_KEY = os.getenv(
+    "JWT_SECRET_KEY",
+    "dev-secret-key-change-this-in-production-f9b8e7d6c5a4b3a2d1e0f9g8h7i6j5k4"
+)
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_EXPIRE_DAYS = 7

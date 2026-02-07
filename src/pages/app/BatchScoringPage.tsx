@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { ModelType, BatchScoreResponse } from "@/types/api";
+import type { ModelType, BatchJobStatus, BatchResultRow } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -30,6 +30,8 @@ export default function BatchScoringPage() {
   const [modelType, setModelType] = useState<ModelType>("logistic");
   const [jobId, setJobId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [results, setResults] = useState<BatchResultRow[]>([]);
+  const [showResults, setShowResults] = useState(false);
 
   // Submit batch job
   const submitMutation = useMutation({
@@ -57,7 +59,7 @@ export default function BatchScoringPage() {
     queryFn: () => api.getBatchJobStatus(jobId!),
     enabled: !!jobId,
     refetchInterval: (query) => {
-      const data = query.state.data as BatchScoreResponse | undefined;
+      const data = query.state.data as BatchJobStatus | undefined;
       if (data?.status === "completed" || data?.status === "failed") {
         return false;
       }
@@ -105,14 +107,54 @@ export default function BatchScoringPage() {
     }
   };
 
+  const handleViewResults = async () => {
+    if (!jobId) return;
+    
+    try {
+      const csvText = await api.downloadBatchResults(jobId);
+      const lines = csvText.trim().split('\n');
+      const headers = lines[0].split(',');
+      
+      const parsedResults: BatchResultRow[] = lines.slice(1).map(line => {
+        const values = line.split(',');
+        return {
+          age_years: Number(values[0]),
+          income_total: Number(values[1]),
+          credit_amount: Number(values[2]),
+          annuity: Number(values[3]),
+          family_members: Number(values[4]),
+          num_active_loans: Number(values[5]),
+          num_closed_loans: Number(values[6]),
+          num_bureau_loans: Number(values[7]),
+          max_delinquency: Number(values[8]),
+          total_delinquency_months: Number(values[9]),
+          pd: Number(values[10]),
+          risk_score: Number(values[11]),
+          risk_band: values[12] as any,
+          expected_loss: Number(values[13]),
+          decision: values[14] as any,
+          reason_codes: values.slice(15).join(','),
+        };
+      });
+      
+      setResults(parsedResults);
+      setShowResults(true);
+    } catch (error) {
+      toast({
+        title: "Failed to Load Results",
+        description: error instanceof Error ? error.message : "Could not load batch results",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getProgressValue = () => {
     if (!jobStatus) return 0;
     if (jobStatus.status === "pending") return 10;
     if (jobStatus.status === "processing") {
-      if (jobStatus.total_records && jobStatus.processed_records) {
-        return Math.round(
-          (jobStatus.processed_records / jobStatus.total_records) * 100
-        );
+      if (jobStatus.total_records) {
+        const processed = (jobStatus.successful_records || 0) + (jobStatus.failed_records || 0);
+        return Math.round((processed / jobStatus.total_records) * 100);
       }
       return 50;
     }
@@ -284,7 +326,7 @@ export default function BatchScoringPage() {
 
                 {jobStatus.total_records && (
                   <p className="text-sm text-muted-foreground">
-                    {jobStatus.processed_records || 0} of{" "}
+                    {(jobStatus.successful_records || 0) + (jobStatus.failed_records || 0)} of{" "}
                     {jobStatus.total_records} records processed
                   </p>
                 )}
@@ -300,17 +342,34 @@ export default function BatchScoringPage() {
               )}
 
               {/* Download Button */}
-              {jobStatus.status === "completed" && jobStatus.download_url && (
-                <a
-                  href={jobStatus.download_url}
-                  download
-                  className="w-full"
-                >
-                  <Button className="w-full" variant="outline">
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Results
+              {jobStatus.status === "completed" && (
+                <div className="space-y-2">
+                  <Button 
+                    onClick={handleViewResults}
+                    className="w-full"
+                    variant="default"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    View Results ({jobStatus.total_records} rows)
                   </Button>
-                </a>
+                  <Button
+                    onClick={async () => {
+                      const csvText = await api.downloadBatchResults(jobId!);
+                      const blob = new Blob([csvText], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `batch_results_${jobId}.csv`;
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                    }}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download CSV
+                  </Button>
+                </div>
               )}
 
               {/* Timestamps */}
@@ -334,6 +393,112 @@ export default function BatchScoringPage() {
           )}
         </div>
       </div>
+
+      {/* Results Table */}
+      {showResults && results.length > 0 && (
+        <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-foreground">
+              Batch Results ({results.length} records)
+            </h2>
+            <Button
+              onClick={() => setShowResults(false)}
+              variant="ghost"
+              size="sm"
+            >
+              Hide Results
+            </Button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-muted-foreground">
+                <tr>
+                  <th className="p-2 text-left">#</th>
+                  <th className="p-2 text-right">Age</th>
+                  <th className="p-2 text-right">Income</th>
+                  <th className="p-2 text-right">Credit Amt</th>
+                  <th className="p-2 text-right">PD</th>
+                  <th className="p-2 text-right">Risk Score</th>
+                  <th className="p-2 text-center">Band</th>
+                  <th className="p-2 text-right">Exp. Loss</th>
+                  <th className="p-2 text-center">Decision</th>
+                  <th className="p-2 text-left">Reason Codes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {results.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-muted/50">
+                    <td className="p-2 text-muted-foreground">{idx + 1}</td>
+                    <td className="p-2 text-right">{row.age_years}</td>
+                    <td className="p-2 text-right">${row.income_total.toLocaleString()}</td>
+                    <td className="p-2 text-right">${row.credit_amount.toLocaleString()}</td>
+                    <td className="p-2 text-right">{(row.pd * 100).toFixed(2)}%</td>
+                    <td className="p-2 text-right font-medium">{row.risk_score}</td>
+                    <td className="p-2 text-center">
+                      <span
+                        className={cn(
+                          "inline-block px-2 py-0.5 rounded text-xs font-semibold",
+                          row.risk_band === "A" && "bg-status-success/20 text-status-success",
+                          row.risk_band === "B" && "bg-status-info/20 text-status-info",
+                          row.risk_band === "C" && "bg-status-warning/20 text-status-warning",
+                          row.risk_band === "D" && "bg-status-error/20 text-status-error"
+                        )}
+                      >
+                        {row.risk_band}
+                      </span>
+                    </td>
+                    <td className="p-2 text-right">${row.expected_loss.toLocaleString()}</td>
+                    <td className="p-2 text-center">
+                      <span
+                        className={cn(
+                          "inline-block px-2 py-0.5 rounded text-xs font-semibold",
+                          row.decision === "Approve" && "bg-status-success/20 text-status-success",
+                          row.decision === "Reject" && "bg-status-error/20 text-status-error",
+                          row.decision === "Manual Review" && "bg-status-warning/20 text-status-warning"
+                        )}
+                      >
+                        {row.decision}
+                      </span>
+                    </td>
+                    <td className="p-2 text-xs text-muted-foreground max-w-xs truncate">
+                      {row.reason_codes}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Summary Statistics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
+            <div>
+              <p className="text-xs text-muted-foreground">Approval Rate</p>
+              <p className="text-lg font-semibold text-foreground">
+                {((results.filter(r => r.decision === "Approve").length / results.length) * 100).toFixed(1)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Avg PD</p>
+              <p className="text-lg font-semibold text-foreground">
+                {((results.reduce((sum, r) => sum + r.pd, 0) / results.length) * 100).toFixed(2)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Avg Risk Score</p>
+              <p className="text-lg font-semibold text-foreground">
+                {Math.round(results.reduce((sum, r) => sum + r.risk_score, 0) / results.length)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Total Exp. Loss</p>
+              <p className="text-lg font-semibold text-foreground">
+                ${results.reduce((sum, r) => sum + r.expected_loss, 0).toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

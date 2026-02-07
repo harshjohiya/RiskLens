@@ -1,59 +1,43 @@
-"""Authentication routes - Simple implementation for demo purposes."""
+"""Authentication routes - JWT-based email/password authentication."""
 import logging
-from datetime import datetime, timedelta
-from typing import Optional
-import secrets
-import hashlib
-
+import sqlite3
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
 
-from ..auth_utils import create_access_token
+from ..auth_utils import hash_password, verify_password, create_access_token
+from ..storage import create_user, get_user_by_email
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Authentication"])
 
 
-# Schemas
+# Request/Response Models
 class LoginRequest(BaseModel):
+    """Login credentials."""
     email: EmailStr
     password: str
 
 
 class SignupRequest(BaseModel):
+    """Signup credentials."""
     name: str
     email: EmailStr
     password: str
 
 
 class User(BaseModel):
+    """User information."""
     id: str
     email: str
     name: str
 
 
 class AuthResponse(BaseModel):
+    """Authentication response with JWT token."""
     access_token: str
+    token_type: str = "bearer"
     user: User
-
-
-class GoogleAuthRequest(BaseModel):
-    token: str
-
-
-# Simple in-memory user storage (for demo only - use a real database in production)
-users_db = {}
-
-
-def hash_password(password: str) -> str:
-    """Simple password hashing (use proper library like bcrypt in production)."""
-    return hashlib.sha256(password.encode()).hexdigest()
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash."""
-    return hash_password(plain_password) == hashed_password
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -65,39 +49,35 @@ async def login(credentials: LoginRequest):
     """
     logger.info(f"Login attempt for email: {credentials.email}")
     
-    # Check if user exists
-    user_data = users_db.get(credentials.email)
+    # Get user from database
+    user = get_user_by_email(credentials.email)
     
-    if not user_data:
-        # For demo: auto-create user on first login
-        user_id = secrets.token_hex(8)
-        
-        user_data = {
-            "id": user_id,
-            "email": credentials.email,
-            "name": credentials.email.split("@")[0].title(),
-            "password_hash": hash_password(credentials.password),
-        }
-        users_db[credentials.email] = user_data
-        
-        logger.info(f"Auto-registered new user: {credentials.email}")
-    else:
-        # Verify password
-        if not verify_password(credentials.password, user_data["password_hash"]):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password",
-            )
+    if not user:
+        logger.warning(f"Login failed: User not found - {credentials.email}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+    
+    # Verify password
+    if not verify_password(credentials.password, user['password_hash']):
+        logger.warning(f"Login failed: Invalid password - {credentials.email}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
     
     # Generate JWT token
-    token = create_access_token(user_id=user_data["id"], email=user_data["email"])
+    token = create_access_token(user_id=user['id'], email=user['email'])
+    
+    logger.info(f"Login successful: {credentials.email}")
     
     return AuthResponse(
         access_token=token,
         user=User(
-            id=user_data["id"],
-            email=user_data["email"],
-            name=user_data["name"],
+            id=user['id'],
+            email=user['email'],
+            name=user['name'] or 'User',
         ),
     )
 
@@ -107,55 +87,55 @@ async def signup(credentials: SignupRequest):
     """
     Register a new user account.
     
-    For demo purposes, creates user in memory.
-    In production, implement proper user creation with database.
+    Creates user in database with hashed password.
     Returns JWT token with user_id in 'sub' claim.
     """
     logger.info(f"Signup attempt for email: {credentials.email}")
     
     # Check if user already exists
-    if credentials.email in users_db:
+    existing_user = get_user_by_email(credentials.email)
+    if existing_user:
+        logger.warning(f"Signup failed: Email already exists - {credentials.email}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with this email already exists",
         )
     
-    # Create new user
-    user_id = secrets.token_hex(8)
+    # Validate password strength
+    if len(credentials.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters",
+        )
     
-    user_data = {
-        "id": user_id,
-        "email": credentials.email,
-        "name": credentials.name,
-        "password_hash": hash_password(credentials.password),
-        "created_at": datetime.utcnow().isoformat(),
-    }
+    # Hash password
+    password_hash = hash_password(credentials.password)
     
-    users_db[credentials.email] = user_data
-    
-    logger.info(f"Created new user: {credentials.email}")
+    # Create user
+    try:
+        user_id = create_user(
+            email=credentials.email,
+            password_hash=password_hash,
+            name=credentials.name,
+        )
+    except sqlite3.IntegrityError:
+        logger.error(f"Signup failed: Database integrity error - {credentials.email}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this email already exists",
+        )
     
     # Generate JWT token
     token = create_access_token(user_id=user_id, email=credentials.email)
     
+    logger.info(f"Signup successful: {credentials.email}")
+    
     return AuthResponse(
         access_token=token,
         user=User(
-            id=user_data["id"],
-            email=user_data["email"],
-            name=user_data["name"],
+            id=user_id,
+            email=credentials.email,
+            name=credentials.name,
         ),
     )
 
-
-@router.post("/google", response_model=AuthResponse)
-async def google_auth(request: GoogleAuthRequest):
-    """
-    Authenticate with Google OAuth.
-    
-    This is a placeholder for future Google OAuth integration.
-    """
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Google authentication is not yet implemented",
-    )

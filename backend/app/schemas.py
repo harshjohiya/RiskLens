@@ -45,6 +45,7 @@ class BatchScoreRequest(BaseModel):
 
 class BatchScoreResponse(BaseModel):
     """Batch scoring response."""
+    job_id: str
     total_records: int
     successful_records: int
     failed_records: int

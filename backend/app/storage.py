@@ -20,6 +20,21 @@ def init_database():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
+    # Create users table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        name TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_user_email ON users(email)
+    """)
+    
     # Create history table with user_id
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS scoring_history (
@@ -31,7 +46,8 @@ def init_database():
         model_used TEXT NOT NULL,
         risk_band TEXT NOT NULL,
         decision TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
     )
     """)
     
@@ -53,7 +69,8 @@ def init_database():
         failed_records INTEGER,
         result_file TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        completed_at TIMESTAMP
+        completed_at TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
     )
     """)
     
@@ -404,4 +421,108 @@ def clear_history():
     conn.commit()
     conn.close()
     logger.info("History cleared")
+
+
+# ==================== USER MANAGEMENT ====================
+
+
+def create_user(email: str, password_hash: str, name: str) -> str:
+    """
+    Create a new user account.
+    
+    Args:
+        email: User's email address (must be unique)
+        password_hash: Hashed password
+        name: User's display name
+    
+    Returns:
+        User ID
+    
+    Raises:
+        sqlite3.IntegrityError: If email already exists
+    """
+    user_id = str(uuid.uuid4())
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+    INSERT INTO users (id, email, password_hash, name)
+    VALUES (?, ?, ?, ?)
+    """, (user_id, email.lower(), password_hash, name))
+    
+    conn.commit()
+    conn.close()
+    
+    logger.info(f"Created user: {email}")
+    return user_id
+
+
+def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
+    """
+    Get user by email address.
+    
+    Args:
+        email: User's email
+    
+    Returns:
+        User dict with id, email, password_hash, name, created_at or None
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+    SELECT id, email, password_hash, name, created_at 
+    FROM users 
+    WHERE email = ?
+    """, (email.lower(),))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return None
+    
+    return {
+        'id': row['id'],
+        'email': row['email'],
+        'password_hash': row['password_hash'],
+        'name': row['name'],
+        'created_at': row['created_at'],
+    }
+
+
+def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Get user by ID.
+    
+    Args:
+        user_id: User's unique ID
+    
+    Returns:
+        User dict with id, email, name, created_at (without password_hash) or None
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+    SELECT id, email, name, created_at 
+    FROM users 
+    WHERE id = ?
+    """, (user_id,))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return None
+    
+    return {
+        'id': row['id'],
+        'email': row['email'],
+        'name': row['name'],
+        'created_at': row['created_at'],
+    }
 
