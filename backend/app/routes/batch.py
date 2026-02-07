@@ -16,7 +16,7 @@ from ..explain import generate_reason_codes
 from ..schemas import ApplicantInput
 from ..config import DATA_DIR
 from ..auth_utils import get_current_user_id
-from ..storage import store_batch_job, get_batch_job
+from ..storage import store_batch_job, get_batch_job, store_prediction
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +82,26 @@ async def batch_score(
                 
                 # Generate reasons
                 reasons = generate_reason_codes(applicant, prob_default, band)
+                
+                # Store in history for dashboard/history pages
+                try:
+                    applicant_dict = applicant.dict()
+                    prediction_dict = {
+                        'pd': prob_default,
+                        'risk_score': score,
+                        'risk_band': band,
+                        'expected_loss': el,
+                        'decision': decision,
+                        'reason_codes': reasons,
+                    }
+                    store_prediction(
+                        applicant_input=applicant_dict,
+                        prediction=prediction_dict,
+                        model_used=model_type,
+                        user_id=user_id,
+                    )
+                except Exception as store_error:
+                    logger.warning(f"Failed to store prediction to history: {store_error}")
                 
                 results.append({
                     **row.to_dict(),
