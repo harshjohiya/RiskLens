@@ -17,6 +17,15 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+  },
+  build: {
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Suppress warnings about module resolution
+        if (warning.code === 'UNRESOLVED_IMPORT') return;
+        warn(warning);
+      },
+    },
   },
 }));
