@@ -1,0 +1,14 @@
+# Vercel Ignore
+backend/
+notebook/
+dataset/
+data/
+models/
+meow/
+*.ipynb
+*.csv
+*.pkl
+__pycache__/
+*.pyc
+.env
+.env.local

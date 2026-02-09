@@ -1,0 +1,26 @@
+# Hugging Face Spaces Ignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+.env.local
+venv/
+.venv/
+*.db
+*.db-journal
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

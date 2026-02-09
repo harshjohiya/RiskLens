@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 import logging
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -25,19 +26,27 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS middleware (allow frontend on localhost)
+# CORS configuration - allow frontend origins
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://localhost:8083",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8083",
+    "http://127.0.0.1:3000",
+]
+
+# Add production frontend URL from environment variable
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    allowed_origins.append(frontend_url)
+    logger.info(f"Added frontend URL to CORS: {frontend_url}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:8080",
-        "http://localhost:8083",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:8080",
-        "http://127.0.0.1:8083",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

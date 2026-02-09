@@ -4,17 +4,25 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from .config import (
-    LOGISTIC_MODEL_PATH,
-    LIGHTGBM_MODEL_PATH,
-    IMPUTER_PATH,
-    FEATURE_COLUMNS_PATH,
-    ModelType,
-)
+from .config import ModelType
 
 logger = logging.getLogger(__name__)
 
-# Global model cache
+# ------------------------------------------------------------------
+# Resolve model directory correctly for Hugging Face + Docker
+# ------------------------------------------------------------------
+BASE_DIR = Path(__file__).resolve().parent        # /app/app
+PROJECT_ROOT = BASE_DIR.parent                   # /app
+MODELS_DIR = PROJECT_ROOT / "models"             # /app/models
+
+LOGISTIC_MODEL_PATH = MODELS_DIR / "logistic_pd_model.pkl"
+LIGHTGBM_MODEL_PATH = MODELS_DIR / "lightgbm_pd_model.pkl"
+IMPUTER_PATH = MODELS_DIR / "imputer.pkl"
+FEATURE_COLUMNS_PATH = MODELS_DIR / "feature_columns.pkl"
+
+# ------------------------------------------------------------------
+# Global caches
+# ------------------------------------------------------------------
 _model_cache: Dict[str, Any] = {}
 _feature_columns: Optional[list] = None
 _imputer: Optional[Any] = None
@@ -35,14 +43,11 @@ def load_model(model_type: str) -> Any:
     if not model_path.exists():
         raise FileNotFoundError(f"Model file not found: {model_path}")
 
-    try:
-        model = joblib.load(model_path)
-        _model_cache[model_type] = model
-        logger.info(f"Loaded {model_type} model from {model_path}")
-        return model
-    except Exception as e:
-        logger.error(f"Failed to load model {model_type}: {e}")
-        raise
+    model = joblib.load(model_path)
+    _model_cache[model_type] = model
+
+    logger.info(f"Loaded {model_type} model from {model_path}")
+    return model
 
 
 def get_feature_columns() -> list:
@@ -53,15 +58,13 @@ def get_feature_columns() -> list:
         return _feature_columns
 
     if not FEATURE_COLUMNS_PATH.exists():
-        raise FileNotFoundError(f"Feature columns file not found: {FEATURE_COLUMNS_PATH}")
+        raise FileNotFoundError(
+            f"Feature columns file not found: {FEATURE_COLUMNS_PATH}"
+        )
 
-    try:
-        _feature_columns = joblib.load(FEATURE_COLUMNS_PATH)
-        logger.info(f"Loaded feature columns: {len(_feature_columns)} features")
-        return _feature_columns
-    except Exception as e:
-        logger.error(f"Failed to load feature columns: {e}")
-        raise
+    _feature_columns = joblib.load(FEATURE_COLUMNS_PATH)
+    logger.info(f"Loaded feature columns ({len(_feature_columns)} features)")
+    return _feature_columns
 
 
 def get_imputer() -> Any:
@@ -74,17 +77,13 @@ def get_imputer() -> Any:
     if not IMPUTER_PATH.exists():
         raise FileNotFoundError(f"Imputer file not found: {IMPUTER_PATH}")
 
-    try:
-        _imputer = joblib.load(IMPUTER_PATH)
-        logger.info("Loaded imputer")
-        return _imputer
-    except Exception as e:
-        logger.error(f"Failed to load imputer: {e}")
-        raise
+    _imputer = joblib.load(IMPUTER_PATH)
+    logger.info("Loaded imputer")
+    return _imputer
 
 
 def validate_models() -> bool:
-    """Validate that all required models exist."""
+    """Validate that all required model files exist."""
     required_files = [
         LOGISTIC_MODEL_PATH,
         LIGHTGBM_MODEL_PATH,
@@ -92,10 +91,12 @@ def validate_models() -> bool:
         FEATURE_COLUMNS_PATH,
     ]
 
-    missing = [f for f in required_files if not f.exists()]
+    missing = [p for p in required_files if not p.exists()]
 
     if missing:
-        logger.error(f"Missing model files: {missing}")
+        logger.error("Missing model files:")
+        for p in missing:
+            logger.error(f"  - {p}")
         return False
 
     logger.info("All model files present")
@@ -103,7 +104,7 @@ def validate_models() -> bool:
 
 
 def test_models() -> bool:
-    """Test that models can be loaded."""
+    """Test that all models can be loaded successfully."""
     try:
         load_model(ModelType.LOGISTIC)
         load_model(ModelType.LIGHTGBM)
@@ -112,5 +113,5 @@ def test_models() -> bool:
         logger.info("All models loaded successfully")
         return True
     except Exception as e:
-        logger.error(f"Model loading test failed: {e}")
+        logger.exception("Model loading test failed")
         return False
