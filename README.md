@@ -39,13 +39,13 @@ graph TB
     D -->|Predictions| F[Scoring Engine]
     F -->|SHAP| G[Explainability]
     
-    style A fill:#e1f5ff
-    style B fill:#bbdefb
-    style C fill:#90caf9
-    style D fill:#64b5f6
-    style E fill:#42a5f5
-    style F fill:#2196f3
-    style G fill:#1976d2
+    style A fill:#e1f5ff,stroke:#01579b,stroke-width:2px,color:#000
+    style B fill:#bbdefb,stroke:#01579b,stroke-width:2px,color:#000
+    style C fill:#90caf9,stroke:#01579b,stroke-width:2px,color:#000
+    style D fill:#64b5f6,stroke:#0d47a1,stroke-width:2px,color:#000
+    style E fill:#42a5f5,stroke:#0d47a1,stroke-width:2px,color:#000
+    style F fill:#2196f3,stroke:#0d47a1,stroke-width:2px,color:#fff
+    style G fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
 ```
 
 ## 🔄 Scoring Workflow
@@ -60,11 +60,14 @@ flowchart LR
     E --> F[SHAP Analysis]
     F --> G[📊 Risk Score + Explanation]
     
-    style A fill:#e8f5e9
-    style C fill:#c8e6c9
-    style E fill:#81c784
-    style G fill:#66bb6a
-    style Z fill:#ffcdd2
+    style A fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style B fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#000
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style D fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000
+    style E fill:#81c784,stroke:#1b5e20,stroke-width:2px,color:#000
+    style F fill:#aed581,stroke:#33691e,stroke-width:2px,color:#000
+    style G fill:#66bb6a,stroke:#1b5e20,stroke-width:2px,color:#000
+    style Z fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
 ```
 
 ## 🚀 Quick Start
