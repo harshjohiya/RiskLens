@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { authService } from "@/lib/authService";
+import { authService } from "@/lib/authService.ts";
 import { Shield } from "lucide-react";
 
 export default function SignUpPage() {

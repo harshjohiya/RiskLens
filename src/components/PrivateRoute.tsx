@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { authService } from "@/lib/authService";
+import { authService } from "@/lib/authService.ts";
 
 interface PrivateRouteProps {
   children: React.ReactNode;

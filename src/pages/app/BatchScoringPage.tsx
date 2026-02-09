@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api } from "@/lib/api.ts";
 import type { ModelType, BatchJobStatus, BatchResultRow } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import {
   Download,
   Clock,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils.ts";
 import { Progress } from "@/components/ui/progress";
 
 export default function BatchScoringPage() {

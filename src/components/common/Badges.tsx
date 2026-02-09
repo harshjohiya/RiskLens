@@ -1,5 +1,5 @@
 import type { RiskBand, Decision } from "@/types/api";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils.ts";
 
 interface RiskBandBadgeProps {
   band: RiskBand;
