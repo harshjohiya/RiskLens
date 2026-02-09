@@ -1,73 +1,164 @@
-# Welcome to your Lovable project
+<div align="center">
 
-## Project info
+# 🎯 RiskLens
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+### AI-Powered Credit Risk Assessment Platform
 
-## How can I edit this code?
+*Real-time scoring • Batch processing • SHAP explainability*
 
-There are several ways of editing your application.
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
 
-**Use Lovable**
+</div>
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📋 Overview
 
-**Use your preferred IDE**
+RiskLens is an enterprise-grade credit risk assessment platform that leverages machine learning to provide accurate, explainable credit scoring. Built with modern web technologies and production-ready ML models, it offers both real-time predictions and batch processing capabilities.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## ✨ Key Features
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **🎯 Real-time Scoring** - Instant credit risk assessment with multiple ML models
+- **📊 Batch Processing** - Process thousands of applications efficiently
+- **🔍 Model Explainability** - SHAP values for transparent decision-making
+- **📈 Portfolio Analytics** - Comprehensive risk distribution insights
+- **🔐 Secure Authentication** - JWT-based user management
+- **📱 Responsive Design** - Modern UI built with React & Tailwind CSS
 
-Follow these steps:
+## 🏗️ Architecture
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+```mermaid
+graph TB
+    A[👤 User] -->|HTTPS| B[React Frontend]
+    B -->|API Calls| C[FastAPI Backend]
+    C -->|Load Models| D[(ML Models)]
+    C -->|Store Results| E[(SQLite DB)]
+    D -->|Predictions| F[Scoring Engine]
+    F -->|SHAP| G[Explainability]
+    
+    style A fill:#e1f5ff
+    style B fill:#bbdefb
+    style C fill:#90caf9
+    style D fill:#64b5f6
+    style E fill:#42a5f5
+    style F fill:#2196f3
+    style G fill:#1976d2
+```
+
+## 🔄 Scoring Workflow
+
+```mermaid
+flowchart LR
+    A[📝 Application] --> B{Validation}
+    B -->|✅ Valid| C[Feature Engineering]
+    B -->|❌ Invalid| Z[Error Response]
+    C --> D[Model Selection]
+    D --> E[Prediction]
+    E --> F[SHAP Analysis]
+    F --> G[📊 Risk Score + Explanation]
+    
+    style A fill:#e8f5e9
+    style C fill:#c8e6c9
+    style E fill:#81c784
+    style G fill:#66bb6a
+    style Z fill:#ffcdd2
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ & npm
+- Python 3.9+
+- Git
+
+### Frontend Setup
+
+```bash
+# Clone repository
 git clone <YOUR_GIT_URL>
+cd risk-lens
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Backend Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+cd risklens-backend
 
-**Use GitHub Codespaces**
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Install dependencies
+pip install -r requirements.txt
 
-## What technologies are used for this project?
+# Run server
+python app/main.py
+```
 
-This project is built with:
+## 🛠️ Tech Stack
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+**Frontend**
+- ⚛️ React 18 + TypeScript
+- 🎨 Tailwind CSS + shadcn/ui
+- ⚡ Vite
+- 🔄 React Query
+- 📊 Recharts
 
-## How can I deploy this project?
+**Backend**
+- 🐍 Python + FastAPI
+- 🤖 LightGBM + Scikit-learn
+- 📈 SHAP for explainability
+- 🔐 JWT authentication
+- 💾 SQLite database
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## 📁 Project Structure
 
-## Can I connect a custom domain to my Lovable project?
+```
+risk-lens/
+├── src/              # React frontend
+│   ├── components/   # UI components
+│   ├── pages/        # Application pages
+│   └── lib/          # Utilities & API client
+├── risklens-backend/ # FastAPI backend
+│   ├── app/          # Application code
+│   ├── models/       # Trained ML models
+│   └── routes/       # API endpoints
+├── notebook/         # Jupyter notebooks
+└── data/             # Training datasets
+```
 
-Yes, you can!
+## 🎯 API Endpoints
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/auth/signup` | User registration |
+| `POST` | `/auth/login` | User authentication |
+| `POST` | `/api/predict` | Single prediction |
+| `POST` | `/api/batch/score` | Batch scoring |
+| `GET` | `/api/batch/status/{id}` | Batch job status |
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 📊 Models
+
+- **Logistic Regression** - Baseline interpretable model
+- **LightGBM** - High-performance gradient boosting
+
+Both models are trained on historical credit data with extensive feature engineering.
+
+## 📄 License
+
+MIT License - feel free to use this project for your own purposes.
+
+---
+
+<div align="center">
+
+**Built with ❤️ for better credit risk assessment**
