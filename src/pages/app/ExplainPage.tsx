@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api } from "@/lib/api.ts";
+import { api } from "@/lib/api";
 import type { ApplicantInput, ExplainabilityResponse, ModelType } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Brain, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
-import { cn } from "@/lib/utils.ts";
+import { cn } from "@/lib/utils";
 
 const explainSchema = z.object({
   age_years: z.coerce.number().min(18).max(100),

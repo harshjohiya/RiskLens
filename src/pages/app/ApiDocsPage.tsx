@@ -1,7 +1,7 @@
 import { Code, Copy, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils.ts";
+import { cn } from "@/lib/utils";
 
 interface Endpoint {
   method: "GET" | "POST";

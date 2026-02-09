@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { api } from "@/lib/api.ts";
-import { authService } from "@/lib/authService.ts";
-import { cn } from "@/lib/utils.ts";
+import { api } from "@/lib/api";
+import { authService } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import { Activity, Menu, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";

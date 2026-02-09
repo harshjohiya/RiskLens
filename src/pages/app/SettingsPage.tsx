@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api.ts";
+import { api } from "@/lib/api";
 import type { ModelType } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";

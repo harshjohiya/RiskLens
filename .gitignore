@@ -43,7 +43,10 @@ develop-eggs/
 downloads/
 eggs/
 .eggs/
-lib/
+# Ignore Python lib folders but not src/lib
+**/venv/lib/
+**/env/lib/
+**/meow/lib/
 lib64/
 parts/
 sdist/

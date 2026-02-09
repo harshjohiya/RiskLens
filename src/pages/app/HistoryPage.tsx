@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api.ts";
+import { api } from "@/lib/api";
 import type { RiskBand, Decision, HistoryFilters } from "@/types/api";
 import {
   Table,

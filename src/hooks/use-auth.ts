@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { authService } from "@/lib/authService.ts";
+import { authService } from "@/lib/auth";
 import type { User } from "@/types/auth";
 
 /**
