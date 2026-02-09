@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/lib/auth";
-import { Shield } from "lucide-react";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -77,7 +76,7 @@ export default function SignInPage() {
         {/* Logo/Brand */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
+            <img src="/logo.png" alt="RiskLens" className="h-10 w-10 rounded-lg" />
             <span className="text-2xl font-bold text-foreground">RiskLens</span>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, Home, ArrowLeft } from "lucide-react";
+import { Home, ArrowLeft } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();
@@ -15,9 +15,7 @@ const NotFound = () => {
       <div className="text-center max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 rounded-xl bg-primary flex items-center justify-center">
-            <Shield className="w-8 h-8 text-primary-foreground" />
-          </div>
+          <img src="/logo.png" alt="RiskLens" className="w-16 h-16 rounded-xl" />
         </div>
 
         {/* Error Code */}
