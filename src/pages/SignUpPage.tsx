@@ -98,7 +98,7 @@ export default function SignUpPage() {
         {/* Logo/Brand */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="RiskLens" className="h-10 w-10 rounded-lg" />
+            <img src="/logo.svg" alt="RiskLens" className="h-12 w-12" />
             <span className="text-2xl font-bold text-foreground">RiskLens</span>
           </div>
         </div>

@@ -49,7 +49,7 @@ export function AppSidebar() {
       {/* Logo */}
       <div className="flex items-center h-16 px-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="RiskLens" className="w-8 h-8 rounded-lg" />
+          <img src="/logo.svg" alt="RiskLens" className="w-10 h-10" />
           {!collapsed && (
             <span className="text-lg font-semibold text-sidebar-foreground">
               RiskLens

@@ -51,7 +51,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="RiskLens" className="w-8 h-8 rounded-lg" />
+            <img src="/logo.svg" alt="RiskLens" className="w-10 h-10" />
             <span className="text-xl font-semibold text-foreground">
               RiskLens
             </span>
@@ -76,7 +76,7 @@ export default function LandingPage() {
       <section className="pt-32 pb-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-            <Shield className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4" />
             Enterprise-Grade Credit Risk Platform
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
@@ -182,9 +182,7 @@ export default function LandingPage() {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Shield className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img src="/logo.svg" alt="RiskLens" className="w-10 h-10" />
               <span className="text-lg font-semibold text-foreground">
                 RiskLens
               </span>

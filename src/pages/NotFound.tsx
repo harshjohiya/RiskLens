@@ -15,7 +15,7 @@ const NotFound = () => {
       <div className="text-center max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <img src="/logo.png" alt="RiskLens" className="w-16 h-16 rounded-xl" />
+          <img src="/logo.svg" alt="RiskLens" className="w-20 h-20" />
         </div>
 
         {/* Error Code */}
