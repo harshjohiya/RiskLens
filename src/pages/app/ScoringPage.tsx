@@ -4,17 +4,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { api } from "@/lib/api";
-import type { ApplicantInput, PredictionResponse, ModelType } from "@/types/api";
+import type { ApplicantInput, PredictionResponse } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Calculator, AlertCircle } from "lucide-react";
 import { RiskBandBadge, DecisionBadge } from "@/components/common/Badges";
@@ -30,7 +23,7 @@ const scoringSchema = z.object({
   num_bureau_loans: z.coerce.number().min(0, "Must be 0 or greater"),
   max_delinquency: z.coerce.number().min(0, "Must be 0 or greater"),
   total_delinquency_months: z.coerce.number().min(0, "Must be 0 or greater"),
-  model_type: z.enum(["logistic", "lightgbm"]),
+  model_type: z.literal("lightgbm").default("lightgbm"),
 });
 
 type ScoringFormData = z.infer<typeof scoringSchema>;
@@ -42,13 +35,11 @@ export default function ScoringPage() {
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<ScoringFormData>({
     resolver: zodResolver(scoringSchema),
     defaultValues: {
-      model_type: "logistic",
+      model_type: "lightgbm",
       age_years: undefined,
       income_total: undefined,
       credit_amount: undefined,
@@ -61,8 +52,6 @@ export default function ScoringPage() {
       total_delinquency_months: 0,
     },
   });
-
-  const modelType = watch("model_type");
 
   const mutation = useMutation({
     mutationFn: (data: ApplicantInput) => api.predict(data),
@@ -103,25 +92,6 @@ export default function ScoringPage() {
         {/* Form */}
         <div className="bg-card border border-border rounded-lg p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Model Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="model_type">Model Type</Label>
-              <Select
-                value={modelType}
-                onValueChange={(value: ModelType) =>
-                  setValue("model_type", value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="logistic">Logistic Regression</SelectItem>
-                  <SelectItem value="lightgbm">LightGBM</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Demographics */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">

@@ -1,6 +1,6 @@
 // RiskLens API Types - Strongly typed for all backend interactions
 
-export type ModelType = "logistic" | "lightgbm";
+export type ModelType = "lightgbm";
 
 export type RiskBand = "A" | "B" | "C" | "D";
 

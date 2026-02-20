@@ -1,15 +1,8 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { ModelType, BatchJobStatus, BatchResultRow } from "@/types/api";
+import type { BatchJobStatus, BatchResultRow } from "@/types/api";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -27,7 +20,6 @@ import { Progress } from "@/components/ui/progress";
 export default function BatchScoringPage() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
-  const [modelType, setModelType] = useState<ModelType>("logistic");
   const [jobId, setJobId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [results, setResults] = useState<BatchResultRow[]>([]);
@@ -35,7 +27,7 @@ export default function BatchScoringPage() {
 
   // Submit batch job
   const submitMutation = useMutation({
-    mutationFn: () => api.submitBatchScore(file!, modelType),
+    mutationFn: () => api.submitBatchScore(file!, "lightgbm"),
     onSuccess: (data) => {
       setJobId(data.job_id);
       toast({
@@ -175,22 +167,6 @@ export default function BatchScoringPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Upload Section */}
         <div className="bg-card border border-border rounded-lg p-6 space-y-6">
-          <div className="space-y-2">
-            <Label>Model Type</Label>
-            <Select
-              value={modelType}
-              onValueChange={(value: ModelType) => setModelType(value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="logistic">Logistic Regression</SelectItem>
-                <SelectItem value="lightgbm">LightGBM</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Drop Zone */}
           <div
             onDragOver={handleDragOver}
