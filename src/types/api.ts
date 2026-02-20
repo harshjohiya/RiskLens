@@ -153,6 +153,13 @@ export interface ModelSettings {
   last_updated: string;
 }
 
+export interface ThresholdSettings {
+  band_a_min: number;
+  band_b_min: number;
+  band_c_min: number;
+  el_loss_rate: number;
+}
+
 // Health Check
 export interface HealthStatus {
   status: "healthy" | "unhealthy";

@@ -9,6 +9,7 @@ import type {
   HistoryFilters,
   ExplainabilityResponse,
   ModelSettings,
+  ThresholdSettings,
   HealthStatus,
   ModelType,
 } from "@/types/api";
@@ -155,6 +156,17 @@ class ApiClient {
     return this.fetch<ModelSettings>("/api/settings/model", {
       method: "POST",
       body: JSON.stringify({ active_model: modelType }),
+    });
+  }
+
+  async getThresholdSettings(): Promise<ThresholdSettings> {
+    return this.fetch<ThresholdSettings>("/api/settings/thresholds");
+  }
+
+  async updateThresholdSettings(settings: ThresholdSettings): Promise<ThresholdSettings> {
+    return this.fetch<ThresholdSettings>("/api/settings/thresholds", {
+      method: "POST",
+      body: JSON.stringify(settings),
     });
   }
 }

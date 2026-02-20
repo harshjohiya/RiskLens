@@ -18,8 +18,6 @@ import ScoringPage from "./pages/app/ScoringPage";
 import BatchScoringPage from "./pages/app/BatchScoringPage";
 import HistoryPage from "./pages/app/HistoryPage";
 import ExplainPage from "./pages/app/ExplainPage";
-import SettingsPage from "./pages/app/SettingsPage";
-import ApiDocsPage from "./pages/app/ApiDocsPage";
 
 // Auth Protection
 import { PrivateRoute } from "./components/PrivateRoute";
@@ -66,8 +64,6 @@ const App = () => (
             <Route path="batch" element={<BatchScoringPage />} />
             <Route path="history" element={<HistoryPage />} />
             <Route path="explain" element={<ExplainPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="docs" element={<ApiDocsPage />} />
           </Route>
 
           {/* Catch-all */}

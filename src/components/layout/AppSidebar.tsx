@@ -6,8 +6,6 @@ import {
   FileStack,
   History,
   Brain,
-  Settings,
-  FileCode2,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -31,8 +29,6 @@ const navItems: NavItem[] = [
   { title: "Batch Scoring", href: "/app/batch", icon: FileStack },
   { title: "History", href: "/app/history", icon: History },
   { title: "Explainability", href: "/app/explain", icon: Brain },
-  { title: "Settings", href: "/app/settings", icon: Settings },
-  { title: "API Docs", href: "/app/docs", icon: FileCode2 },
 ];
 
 export function AppSidebar() {
