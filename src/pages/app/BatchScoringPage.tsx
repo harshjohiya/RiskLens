@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { BatchJobStatus, BatchResultRow } from "@/types/api";
+import type { BatchJobStatus, BatchResultRow, BatchScoreResponse, SchemaAlignmentInfo } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,49 @@ import {
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Parse a flat CSV text into an array of objects keyed by header name.
+ *  Handles commas inside the last field (reason_codes). */
+function parseCsv(text: string): Record<string, string>[] {
+  const lines = text.trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  const rcIdx = headers.indexOf("reason_codes");
+
+  return lines.slice(1).map((line) => {
+    // Split by comma but keep everything from reason_codes onwards joined
+    const parts = line.split(",");
+    const values =
+      rcIdx >= 0 && parts.length > headers.length
+        ? [...parts.slice(0, rcIdx), parts.slice(rcIdx).join(",")]
+        : parts;
+
+    const obj: Record<string, string> = {};
+    headers.forEach((h, i) => {
+      obj[h] = (values[i] ?? "").trim().replace(/^"|"$/g, "");
+    });
+    return obj;
+  });
+}
+
+/** Convert a string to a number; return `fallback` (default 0) when NaN. */
+function safeNum(v: string | undefined, fallback = 0): number {
+  const n = Number(v);
+  return isNaN(n) ? fallback : n;
+}
+
+/** Format a number for display; return "-" when NaN/undefined. */
+function fmt(v: number | undefined, decimals?: number): string {
+  if (v === undefined || isNaN(v)) return "-";
+  return decimals !== undefined ? v.toFixed(decimals) : v.toLocaleString();
+}
+
+// ---------------------------------------------------------------------------
+
 export default function BatchScoringPage() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
@@ -24,12 +67,14 @@ export default function BatchScoringPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [results, setResults] = useState<BatchResultRow[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [alignmentInfo, setAlignmentInfo] = useState<SchemaAlignmentInfo | null>(null);
 
   // Submit batch job
   const submitMutation = useMutation({
     mutationFn: () => api.submitBatchScore(file!, "lightgbm"),
-    onSuccess: (data) => {
+    onSuccess: (data: BatchScoreResponse) => {
       setJobId(data.job_id);
+      if (data.schema_alignment) setAlignmentInfo(data.schema_alignment);
       toast({
         title: "Batch Job Submitted",
         description: `Job ID: ${data.job_id}`,
@@ -101,34 +146,40 @@ export default function BatchScoringPage() {
 
   const handleViewResults = async () => {
     if (!jobId) return;
-    
+
     try {
       const csvText = await api.downloadBatchResults(jobId);
-      const lines = csvText.trim().split('\n');
-      const headers = lines[0].split(',');
-      
-      const parsedResults: BatchResultRow[] = lines.slice(1).map(line => {
-        const values = line.split(',');
-        return {
-          age_years: Number(values[0]),
-          income_total: Number(values[1]),
-          credit_amount: Number(values[2]),
-          annuity: Number(values[3]),
-          family_members: Number(values[4]),
-          num_active_loans: Number(values[5]),
-          num_closed_loans: Number(values[6]),
-          num_bureau_loans: Number(values[7]),
-          max_delinquency: Number(values[8]),
-          total_delinquency_months: Number(values[9]),
-          pd: Number(values[10]),
-          risk_score: Number(values[11]),
-          risk_band: values[12] as any,
-          expected_loss: Number(values[13]),
-          decision: values[14] as any,
-          reason_codes: values.slice(15).join(','),
-        };
-      });
-      
+      const rows = parseCsv(csvText);
+
+      if (rows.length === 0) {
+        toast({ title: "Empty Results", description: "The result file has no data rows.", variant: "destructive" });
+        return;
+      }
+
+      // The output CSV has the original uploaded columns first, then prediction
+      // columns appended by the backend.  We look up every field by header name
+      // so column order never matters.
+      const parsedResults: BatchResultRow[] = rows.map((r) => ({
+        // The backend always emits canonical column names from the aligned df.
+        age_years: safeNum(r["age_years"]),
+        income_total: safeNum(r["AMT_INCOME_TOTAL"]),
+        credit_amount: safeNum(r["AMT_CREDIT"]),
+        annuity: safeNum(r["AMT_ANNUITY"]),
+        family_members: safeNum(r["CNT_FAM_MEMBERS"]),
+        num_active_loans: safeNum(r["num_active_loans"]),
+        num_closed_loans: safeNum(r["num_closed_loans"]),
+        num_bureau_loans: safeNum(r["num_bureau_loans"]),
+        max_delinquency: safeNum(r["max_delinquency"]),
+        total_delinquency_months: safeNum(r["total_delinquency_months"]),
+        pd: safeNum(r["pd"]),
+        risk_score: safeNum(r["risk_score"]),
+        risk_band: (r["risk_band"] || "D") as BatchResultRow["risk_band"],
+        expected_loss: safeNum(r["expected_loss"]),
+        decision: (r["decision"] || "Error") as BatchResultRow["decision"],
+        reason_codes: r["reason_codes"] ?? "",
+        error: r["error"],
+      }));
+
       setResults(parsedResults);
       setShowResults(true);
     } catch (error) {
@@ -404,13 +455,13 @@ export default function BatchScoringPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {results.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-muted/50">
+                  <tr key={idx} className={cn("hover:bg-muted/50", row.error && "opacity-60")}>
                     <td className="p-2 text-muted-foreground">{idx + 1}</td>
-                    <td className="p-2 text-right">{row.age_years}</td>
-                    <td className="p-2 text-right">${row.income_total.toLocaleString()}</td>
-                    <td className="p-2 text-right">${row.credit_amount.toLocaleString()}</td>
-                    <td className="p-2 text-right">{(row.pd * 100).toFixed(2)}%</td>
-                    <td className="p-2 text-right font-medium">{row.risk_score}</td>
+                    <td className="p-2 text-right">{fmt(row.age_years)}</td>
+                    <td className="p-2 text-right">{isNaN(row.income_total) ? "-" : `$${row.income_total.toLocaleString()}`}</td>
+                    <td className="p-2 text-right">{isNaN(row.credit_amount) ? "-" : `$${row.credit_amount.toLocaleString()}`}</td>
+                    <td className="p-2 text-right">{isNaN(row.pd) ? "-" : `${(row.pd * 100).toFixed(2)}%`}</td>
+                    <td className="p-2 text-right font-medium">{fmt(row.risk_score)}</td>
                     <td className="p-2 text-center">
                       <span
                         className={cn(
@@ -424,7 +475,7 @@ export default function BatchScoringPage() {
                         {row.risk_band}
                       </span>
                     </td>
-                    <td className="p-2 text-right">${row.expected_loss.toLocaleString()}</td>
+                    <td className="p-2 text-right">{isNaN(row.expected_loss) ? "-" : `$${row.expected_loss.toLocaleString()}`}</td>
                     <td className="p-2 text-center">
                       <span
                         className={cn(
@@ -447,32 +498,57 @@ export default function BatchScoringPage() {
           </div>
 
           {/* Summary Statistics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
-            <div>
-              <p className="text-xs text-muted-foreground">Approval Rate</p>
-              <p className="text-lg font-semibold text-foreground">
-                {((results.filter(r => r.decision === "Approve").length / results.length) * 100).toFixed(1)}%
+          {(() => {
+            const scored = results.filter((r) => !r.error && !isNaN(r.pd));
+            const n = scored.length || 1;
+            const approvalRate = (scored.filter((r) => r.decision === "Approve").length / n) * 100;
+            const avgPd = (scored.reduce((s, r) => s + r.pd, 0) / n) * 100;
+            const avgScore = scored.reduce((s, r) => s + r.risk_score, 0) / n;
+            const totalEL = scored.reduce((s, r) => s + r.expected_loss, 0);
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
+                <div>
+                  <p className="text-xs text-muted-foreground">Approval Rate</p>
+                  <p className="text-lg font-semibold text-foreground">{approvalRate.toFixed(1)}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Avg PD</p>
+                  <p className="text-lg font-semibold text-foreground">{avgPd.toFixed(2)}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Avg Risk Score</p>
+                  <p className="text-lg font-semibold text-foreground">{Math.round(avgScore)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Exp. Loss</p>
+                  <p className="text-lg font-semibold text-foreground">${totalEL.toLocaleString()}</p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Schema Alignment Info */}
+          {alignmentInfo && Object.keys(alignmentInfo.column_mapping).length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Column Mapping Applied ({alignmentInfo.matched_columns}/{alignmentInfo.total_training_columns} matched)
               </p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(alignmentInfo.column_mapping).map(([from, to]) => (
+                  <span key={from} className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded text-xs text-muted-foreground">
+                    <span className="font-mono">{from}</span>
+                    <span className="opacity-50">→</span>
+                    <span className="font-mono text-foreground">{to}</span>
+                  </span>
+                ))}
+              </div>
+              {alignmentInfo.missing_columns.length > 0 && (
+                <p className="mt-2 text-xs text-status-warning">
+                  Missing columns (filled with NaN for imputer): {alignmentInfo.missing_columns.join(", ")}
+                </p>
+              )}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Avg PD</p>
-              <p className="text-lg font-semibold text-foreground">
-                {((results.reduce((sum, r) => sum + r.pd, 0) / results.length) * 100).toFixed(2)}%
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Avg Risk Score</p>
-              <p className="text-lg font-semibold text-foreground">
-                {Math.round(results.reduce((sum, r) => sum + r.risk_score, 0) / results.length)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total Exp. Loss</p>
-              <p className="text-lg font-semibold text-foreground">
-                ${results.reduce((sum, r) => sum + r.expected_loss, 0).toLocaleString()}
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>

@@ -61,6 +61,14 @@ export interface BatchScoreRequest {
   model_type: ModelType;
 }
 
+export interface SchemaAlignmentInfo {
+  column_mapping: Record<string, string>;
+  missing_columns: string[];
+  extra_columns_dropped: string[];
+  matched_columns: number;
+  total_training_columns: number;
+}
+
 export interface BatchScoreResponse {
   job_id: string;
   total_records: number;
@@ -68,6 +76,7 @@ export interface BatchScoreResponse {
   failed_records: number;
   file_path: string;
   message: string;
+  schema_alignment?: SchemaAlignmentInfo;
 }
 
 export interface BatchJobStatus {
