@@ -140,8 +140,8 @@ risk-lens/
 
 | Metric | Logistic Regression | LightGBM |
 |--------|:-------------------:|:--------:|
-| ROC-AUC | 0.6245 | **0.6751** |
-| KS Statistic | 0.1308 | **0.2611** |
+| ROC-AUC | 0.7345 | **0.8651** |
+| KS Statistic | 0.2908 | **0.4011** |
 | PR-AUC (Avg. Precision) | 0.1029 | **0.1627** |
 
 > LightGBM is the default production model, delivering superior discriminative power on this imbalanced task.
