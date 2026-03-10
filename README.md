@@ -48,29 +48,7 @@ graph TB
     style G fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
 ```
 
-## 🔄 Scoring Workflow
-
-```mermaid
-flowchart LR
-    A[📝 Application] --> B{Validation}
-    B -->|✅ Valid| C[Feature Engineering]
-    B -->|❌ Invalid| Z[Error Response]
-    C --> D[Model Selection]
-    D --> E[Prediction]
-    E --> F[SHAP Analysis]
-    F --> G[📊 Risk Score + Explanation]
-    
-    style A fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#000
-    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style D fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000
-    style E fill:#81c784,stroke:#1b5e20,stroke-width:2px,color:#000
-    style F fill:#aed581,stroke:#33691e,stroke-width:2px,color:#000
-    style G fill:#66bb6a,stroke:#1b5e20,stroke-width:2px,color:#000
-    style Z fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
-```
-
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Node.js 18+ & npm
@@ -168,45 +146,9 @@ risk-lens/
 
 > LightGBM is the default production model, delivering superior discriminative power on this imbalanced task.
 
-### ML Training Pipeline
-
-```mermaid
-flowchart TD
-    A["📁 Raw Dataset\n307,511 rows · 122 features"] --> B["🛠️ Feature Engineering\nBureau, balance, income ratios"]
-    B --> C["📦 20 Engineered Features\n+ Median Imputation"]
-    C --> D{"🔀 Train / Val Split\n80% / 20%"}
-    D --> E["📐 Logistic Regression\nROC-AUC 0.6245 · KS 0.1308"]
-    D --> F["🚀 LightGBM\nROC-AUC 0.6751 · KS 0.2611"]
-    F -->|"✅ Best Model"| G["🏭 Production Deployment\n+ SHAP Explainability"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
-    style C fill:#e8eaf6,stroke:#283593,stroke-width:2px,color:#000
-    style D fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#000
-    style E fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
-    style F fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px,color:#000
-    style G fill:#1b5e20,stroke:#1b5e20,stroke-width:2px,color:#fff
-```
-
 ## 🎯 Risk Score System
 
 PD (Probability of Default) is converted to a score via: `Score = 600 − 50 × ln(PD / (1 − PD))`, clamped to **[0 – 1000]**.
-
-```mermaid
-flowchart LR
-    A["🔢 Risk Score\n0 – 1000"] --> B{Band}
-    B -->|"≥ 650"| C["🟢 Band A\nApprove"]
-    B -->|"600 – 649"| D["🔵 Band B\nApprove"]
-    B -->|"550 – 599"| E["🟡 Band C\nManual Review"]
-    B -->|"< 550"| F["🔴 Band D\nReject"]
-
-    style A fill:#e1f5ff,stroke:#01579b,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#000
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style E fill:#fff8e1,stroke:#ff6f00,stroke-width:2px,color:#000
-    style F fill:#ffebee,stroke:#b71c1c,stroke-width:2px,color:#000
-```
 
 | Band | Score Range | Decision | Risk Level |
 |:----:|:-----------:|:--------:|:----------:|
